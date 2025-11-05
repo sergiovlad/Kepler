@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<!--
+Project: Kepler
+Author: Журкин С.В.
+Date: 2025
+License: MIT
+-->
+<!--
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license 
+Click nbfs://nbhost/SystemFileSystem/Templates/ClientSide/html.html to edit this template
+-->
+<html>
+    <head>
+        <title>Солнечная Система (Кеплер)</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+        <style>
+            canvas {
+                border: 1px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <label for="beginDate"> Cтapт: </label><input type="date" id="beginDate">
+        <label for="beginDate"> Дaтa: </label><input type="date" id="curDate" disabled>
+        <label for="masshtab">&nbsp&nbsp MacmTaб: 100px = </label>
+        <input type="number" id="masshtab" value="1" min="0.2" max="20" step="0.1" style="width: 60px; text-align: right;">
+        <label> a.e. </label>
+        <label for="speedOfTime">&nbsp&nbsp Время: lсек = </label>
+        <input type="number" id="speedOfTime" value="1" min="0" max="365" step="1" style="width: 60px"> 
+        <label> сутки&nbsp&nbsp&nbsp</label>
+        <button type="button" id="btnDefaultView">Вид по умолчанию</button>
+        <label for="frameOfReference">&nbsp&nbsp&nbspСистема отсчëта</label>
+        <select id="frameOfReference">
+        </select>
+        <div id="obliquityOfEcliptic" style="position: absolute; right: 10px; height:250px; width: 160px; border: 1px solid black;"> 
+            <label style="margin-left: 5px;">Наклон эклиптики</label>
+            <div style="position: absolute; top: 20px; left: 35px; width: 100px;">
+                <button type="button" id="btnPushUp" style="position: absolute; top: 0px; left: 30px;">&#9650;</button>
+                <button type="button" id="btnPushLeft" style="position: absolute; top: 25px; left: 0px;">&#9668;</button> 
+                <button type="button" id="btnPushRight" style="position: absolute; top: 25px; left: 60px;">&#9658;</button> 
+                <button type="button" id="btnPushDown" style="position: absolute; top: 50px; left: 30px;">&#9660;</button>
+            </div>
+            <div style="position: absolute; top: 95px; left: 0px;">
+                <label style="margin-left: 5px; ">от вертикали</label>
+                <input type="number" id="deviationFromVertical" value="0" min="-180" max="180" step="1" 
+                       style="width: 40px; text-align: right;">
+                <label>&deg</label>
+                <label style="margin-left: 5px; ">, горизонтали</label>
+                <input type="number" id="deviationFromHorizontal" value="0" min="-180" max="180" step="1" 
+                       style="width: 40px; text-align: right;">
+                <label>&deg</label>
+            </div>
+            <div style="position: absolute;top: 180px; left: 0px; width:100px;">
+                <button type="button" id="btnRotate" style="position: absolute;top: 0px;left: 65px; display: none">&#8634;</button>
+            </div>
+        </div> 
+        <br>
+        <canvas id = "SolarSystem" width="900" height="900" style="cursor: move; background-color: black; "></canvas>
+        <script>
+            const msInDay = 24 * 60 * 60 * 1000; // кол - во мс в сутках
+            const msInDay_02Proz = msInDay / 50; // 2% от кол-ва ме в суток
+            const deviationFromVertical = document.querySelector('#deviationFromVertical'); 
+            deviationFromVertical.addEventListener('change', setDevFromVertical);
+            const deviationFromHorizontal = document.querySelector('#deviationFromHorizontal');
+            deviationFromHorizontal.addEventListener ('change', setDevFromHorizontal);
+            let devFromVerticalValue = deviationFromVertical.value;
+            let devFromHorizontalValue = deviationFromHorizontal.value;
+            let isRequestAnimationFrame = false;
+            
+            function setDevFromVertical () {
+                devFromVerticalValue = deviationFromVertical.value;
+            }
+            function setDevFromHorizontal() {
+                devFromHorizontalValue = deviationFromHorizontal.value;
+            }
+            let timeoutId;
+            let isMouseDown = false;
+            
+            let beginDate = document.querySelector("input[id='beginDate']"); 
+            beginDate.addEventListener('change', setBeginDate);
+            let curDate = document.querySelector("input[id='curDate']"); 
+            let masshtab = document.querySelector("#masshtab");
+            masshtab.addEventListener('change', setMasshtab);
+            let speedOfTime = document.querySelector ('#speedOfTime'); 
+            speedOfTime.addEventListener('change', setSpeedOfTime);
+            let btnDefaultView = document.querySelector('#btnDefaultView'); 
+            btnDefaultView.addEventListener('click', setDefaultView);
+            const frameOfReference = document.querySelector('#frameOfReference'); 
+            frameOfReference.addEventListener('change', setFrameOfReference);
+            const btnPushUp = document.querySelector('#btnPushUp'); 
+            btnPushUp.addEventListener('mousedown', turnTopLongAwayFromUs); 
+            btnPushUp.addEventListener('mouseup', turnTopLongAwayFromUsUp); 
+            btnPushUp.addEventListener('mouseout', turnTopLongAwayFromUsUp); 
+            function turnTopLongAwayFromUs () {
+                isMouseDown = true;
+                timeoutId = setInterval(
+                    () => {
+                        if (isMouseDown) {
+                            deviationFromVertical.value = Number(devFromVerticalValue) + 1; 
+                            setDevFromVertical();
+                        }
+                        },
+                    50);
+            }
+            function turnTopLongAwayFromUsUp () {
+                isMouseDown = false;
+                clearTimeout (timeoutId);
+            }
+            
+            const btnPushLeft = document.querySelector('#btnPushLeft'); 
+            btnPushLeft.addEventListener('mousedown', turnLeftLongAwayFromUs); 
+            btnPushLeft.addEventListener('mouseup', turnLeftLongAwayFromUsUp); 
+            btnPushLeft.addEventListener('mouseout', turnLeftLongAwayFromUsUp);
+            function turnLeftLongAwayFromUs () {
+                isMouseDown = true;
+                timeoutId = setInterval(
+                    () => { if (isMouseDown) {
+                                deviationFromHorizontal.value = Number(devFromHorizontalValue) + 1;
+                                setDevFromHorizontal();
+                            }
+                        }, 
+                    50);
+            }
+            function turnLeftLongAwayFromUsUp() {
+                isMouseDown = false;
+                clearTimeout (timeoutId);
+            }
+            
+            const btnPushRight = document.querySelector('#btnPushRight'); 
+            btnPushRight.addEventListener('mousedown', turnRightLongAwayFromUs); 
+            btnPushRight.addEventListener('mouseup', turnRightLongAwayFromUsUp); 
+            btnPushRight.addEventListener('mouseout', turnRightLongAwayFromUsUp);
+            function turnRightLongAwayFromUs () {
+                isMouseDown = true;
+                timeoutId = setInterval(
+                    () => { if (isMouseDown) {
+                                deviationFromHorizontal.value = Number (devFromHorizontalValue)- 1; 
+                                setDevFromHorizontal();
+                            }
+                        }, 
+                    50);
+            }
+            function turnRightLongAwayFromUsUp() {
+                isMouseDown = false;
+                clearTimeout (timeoutId);
+            }
+            
+            const btnPushDown = document.querySelector('#btnPushDown'); 
+            btnPushDown.addEventListener('mousedown', turnDownLongAwayFromUs); 
+            btnPushDown.addEventListener ('mouseup', turnDownLongAwayFromUsUp);
+            btnPushDown.addEventListener('mouseout', turnDownLongAwayFromUsUp); 
+            
+            function turnDownLongAwayFromUs () {
+                isMouseDown = true;
+                timeoutId = setInterval(
+                    () => {
+                        if (isMouseDown) {
+                            deviationFromVertical.value = Number (devFromVerticalValue) - 1;
+                            setDevFromVertical ();
+                        }
+                    },
+                    50);
+                }
+            function turnDownLongAwayFromUsUp() {
+                isMouseDown = false;
+                clearTimeout (timeoutId);
+            }
+            function turnRightAwayFromUs () {
+                deviationFromHorizontal.value = Number(deviationFromVertical.value) - 10; 
+                setDevFromHorizontal();
+            }
+            function turnDownAwayFromUs () {
+                deviationFromVertical.value = Number (deviationFromVertical.value) - 10;
+                setDevFromVertical ();
+            }
+            
+            const btnRotate = document.querySelector('#btnRotate'); 
+            btnRotate.addEventListener('mousedown', turnRotate); 
+            btnRotate.addEventListener ('mouseup', turnRotateUp);
+            btnRotate.addEventListener('mouseout', turnRotateUp);
+            let rotate=0;
+            
+            function turnRotate () {
+                isMouseDown = true;
+                timeoutId = setInterval(
+                    () => {
+                        if (isMouseDown) {
+                            rotate = rotate+ 1;
+                        }
+                    },
+                    50);
+                }
+            function turnRotateUp() {
+                isMouseDown = false;
+                clearTimeout (timeoutId);
+            }
+//            function turnRightAwayFromUs () {
+//                deviationFromHorizontal.value = Number(deviationFromVertical.value) - 10; 
+//                setDevFromHorizontal();
+//            }
+//            function turnDownAwayFromUs () {
+//                deviationFromVertical.value = Number (deviationFromVertical.value) - 10;
+//                setDevFromVertical ();
+//            }
+            let originalDate;
+            let curentDate;
+            let bodyBeginOfCounting;
+            setBeginDate();
+            function setBeginDate() {
+                if (beginDate.value == '') {
+                    beginDate.value = '2025-07-15';
+                }
+                
+                originalDate = new Date (beginDate.value);
+                curentDate = new Date (originalDate.getTime());
+            }
+            function setFrameOfReference () {
+                let el = universe.getBody(frameOfReference.value);
+                if (el != undefined) {
+                    bodyBeginOfCounting = el;
+                }
+            }
+            let pxInAE;//            масштаб: кол - во пикселей на 1 а.е.
+
+            const pxSizeForHidePlanets = 8;
+            function setMasshtab() {
+                pxInAE = 100 / event.target.value;
+                setBodyRadius();
+            }
+            
+            let dayInSek;
+            
+            function setSpeedOfTime() {
+                dayInSek = event.target.value;
+            }
+            
+            let posPrev;
+            let posPrev2;
+            let E_Prev;
+            const AE = 149597870.7;
+
+            class Pos {
+                x;
+                y;
+            }
+            class HistoryOfPos {
+                #history_of_pos;
+                #maxLength; // максимальная длина массива history_of_pos
+                constructor(){
+                    this.#maxLength = 20;
+                    this.#history_of_pos = [];
+                }
+                checkCorrectnessArgument(p) {
+                    if (    (p.x==undefined)
+                            || (p.y== undefined)) {
+                        throw('HistoryOfPos->checkCorrectnessArgument: аргумент не координата!')
+                    }
+                }
+                myPush(p){
+                    this.checkCorrectnessArgument(p);
+                    let myP = new Pos();
+                    myP.x = p.x;
+                    myP.y =p.y;
+                    let n= this.#history_of_pos.push(myP);
+                    if (n>this.#maxLength){
+                        this.#history_of_pos.shift();
+                    }
+                }
+                myGetLastValue() {
+                    if (this.#history_of_pos.length>0) {
+                        let nLastIndex = (this.#history_of_pos.length-1);
+                        return this.#history_of_pos[nLastIndex];
+                    } else {
+                        return undefined;
+                    }
+                }
+                get history_of_pos() {
+                    return this.#history_of_pos;
+                }
+                set maxLength(maxLength){
+                    this.#maxLength = maxLength;
+                }
+            }
+            const MODE_BuildCircleOn = 1;
+            const MODE_BuildCircleOff = 2;
+            const MODE_BuildTrak = 3;
+            class Body { //тело
+                name;
+                a;
+                e;
+                T;
+                color;
+                radius_km; // радиус тела
+                MinRadiusVisual; // минимальный радиус визуализации
+                inclination; // наклон орбиты
+                owner; //хозяин
+                #pos; // координаты тела
+                #history_pos;
+                modeBuildCircle; //режим построения орбиты
+                masshtabHide;   //масштаб, начиная с которого объект скрывается
+
+                constructor({name, a, e, T, color, radius_km, MinRadiusVisual, inclination, owner, masshtabHide}){
+                    this.name = name;
+                    this.a = a;
+                    this.e = e;
+                    this.T = T;
+                    this.color = color;
+                    this.radius_km = radius_km;
+                    this.MinRadiusVisual = MinRadiusVisual;
+                    this.inclination = inclination;
+                    this.owner = owner;
+                    this.masshtabHide = masshtabHide
+                    this.#history_pos = new HistoryOfPos();
+                    this.#pos = new Pos();
+                    this.modeBuildCircle  = MODE_BuildCircleOff;
+                }
+                get pos(){
+                    return this.#pos;
+                }
+                set pos(pos){
+                    if (this.modeBuildCircle==MODE_BuildCircleOn) {
+                        this.#history_pos.myPush(pos);
+                    } else if (this.modeBuildCircle==MODE_BuildTrak) {
+                        let hpos = this.history_pos.myGetLastValue();
+                        if (    (   (   (   hpos!=undefined )
+                                        &&  (   hpos.x!=undefined )
+                                        &&  (   hpos.y!=undefined )
+                                    )
+                                    &&  (   (   Math.abs(hpos.x-pos.x)>0.1 )
+                                            ||  (   Math.abs(hpos.y-pos.y)>0.1 )
+                                        )
+                                )
+                                ||  (   hpos==undefined )
+                                ||  (   (hpos.x==undefined)
+                                        &&  (hpos.y==undefined)
+                                    )
+                            ) {
+                            this.#history_pos.myPush(pos);
+                        }
+                    }
+                    this.#pos.x=pos.x;
+                    this.#pos.y=pos.y;                    
+                }
+                get history_pos() {
+                    return this.#history_pos;
+                }
+            }
+            class Universe {
+                // Вселенная
+                bodies; //список неб.тел
+                constructor () {
+                    this.bodies = [];
+                }
+                addBody(body) {
+                    let i = this.bodies.push (body);
+                    return body;
+                }
+                getBody (body) {
+                    return this.bodies.find(e => e.name === body);
+                }
+            }
+            const universe = new Universe(); // создаём мир 
+            sun = universe.addBody( 
+                              new Body ({name: "Sun",       a: 0,       e: 0,       T: 0,       color: "#FF5700", radius_km: 696340,MinRadiusVisual: 8})); 
+            universe.addBody (new Body ({name: "Merkury",   a: 0.387,   e: 0.206,   T: 0.241,   color: "#B5B5B5", radius_km: 2440,  MinRadiusVisual: 2, owner: sun})); 
+            universe.addBody (new Body ({name: "Venus",     a: 0.723,   e: 0.007,   T: 0.615,   color: "#E6C229", radius_km: 6052,  MinRadiusVisual: 3, owner: sun})); 
+            earth = universe.addBody (new Body ({name: "Earth",     a: 1.000,   e: 0.017,   T: 1.0,     color: "#6B93D6", radius_km: 6378,  MinRadiusVisual: 3, owner: sun})); 
+            universe.addBody (new Body ({name: "Mars",      a: 1.524,   e: 0.093,   T: 1.881,   color: "#E27B58", radius_km: 3390,  MinRadiusVisual: 3, owner: sun}));  
+            universe.addBody (new Body ({name: "Yupiter",   a: 5.204,   e: 0.049,   T: 11.862,  color: "#E3DCCB", radius_km: 69911, MinRadiusVisual: 6, owner: sun}));  
+            universe.addBody (new Body ({name: "Saturn",    a: 9.582,   e: 0.057,   T: 29.457,  color: "#F5E3B2", radius_km: 58232, MinRadiusVisual: 6, owner: sun})); 
+            universe.addBody (new Body ({name: "Uran",      a: 19.189,  e: 0.046,   T: 84.017,  color: "#C1E7E7", radius_km: 25362, MinRadiusVisual: 5, owner: sun})); 
+            universe.addBody (new Body ({name: "Neptun",    a: 30.07,   e: 0.011,   T: 164.791, color: "#5B5DDF", radius_km: 24622, MinRadiusVisual: 5, owner: sun})); 
+            universe.addBody (new Body ({name: "Pluton",    a: 39.482,  e: 0.244,   T: 248.090, color: "#D1B7A1", radius_km: 1188,  MinRadiusVisual: 2, owner: sun})); 
+            universe.addBody (new Body ({name: "Ceres",     a: 2.766,   e: 0.079,   T: 4.6,     color: "#A0A0A0", radius_km: 463.5, MinRadiusVisual: 1,     inclination: 10.59, owner: sun,
+                masshtabHide: 2})); 
+            universe.addBody (new Body ({name: "Vesta",     a: 2.362,   e: 0.089,   T: 3.63,    color: "#D4A76A", radius_km: 267,   MinRadiusVisual: 1,     inclination: 7.14,  owner: sun,
+                masshtabHide: 2})); 
+            universe.addBody (new Body ({name: "Pallas",    a: 2.772,   e: 0.231,   T: 4.62,    color: "#B5B585", radius_km: 256,   MinRadiusVisual: 1,     inclination: 34.83, owner: sun,
+                masshtabHide: 2})); 
+            universe.addBody (new Body ({name: "Haumea",    a: 43.116,  e: 0.195,   T: 283.77,  color: "#A0DODO", radius_km: 620,   MinRadiusVisual: 1,    inclination: 28.19, owner: sun}));            
+            universe.addBody (new Body ({name: "Makemake",  a: 45.43,   e: 0.161,   T: 306.21,  color: "#E0D0A0", radius_km: 739,   MinRadiusVisual: 1,     inclination: 29,    owner: sun}));
+            universe.addBody (new Body ({name: "Erida",     a: 67.781,  e: 0.44,    T: 558.04,  color: "#E00030", radius_km: 1163,  MinRadiusVisual: 1,     inclination: 44,    owner: sun})); 
+            universe.addBody (new Body ({name: "Moon",      a: 0.00257, e: 0.0549,  T: 0.074802631,color: "gray", radius_km: 1737,  MinRadiusVisual: 1,     owner: earth})); 
+
+            bodyBeginOfCounting = sun;
+            universe.bodies.forEach (body => {
+                if (    (body.owner==undefined)
+                        ||(body.owner==sun)) {
+                    let option = document.createElement("option");
+                    option.textContent =body.name;
+                    option.value = body.name;
+                    frameOfReference.appendChild (option);
+                }
+            });
+                    
+            const mLoc = {//атрибуты мыши
+                setOffset: false,
+                x: 0,
+                y: 0,
+                firstx: 0,
+                firstY: 0
+            };
+            let offsetScheme = {    //            смещение схемы
+                x: 0,
+                y: 0,
+                firstx: 0,
+                firstY: 0
+            }
+            setDefaultView();
+            
+            function setBodyRadius() {
+                universe.bodies.forEach (body => {
+                    body.radius0 = body.radius_km / AE * pxInAE;
+                    body.radius = (body.zadius0 >= body.MinRadiusVisual) ? body.radius0 : body.MinRadiusVisual;
+                });
+            }
+            setBodyRadius();
+            function getBodyPosition (body, t) {
+                //время в годах от 2000 года
+                let x;
+                let y;
+                if (body.name == "Sun") {
+                    x = 0;
+                    y = 0;                       
+                } else {
+                    const n = (2 * Math.PI)/ body.T; //cpередняя угловая скорость 
+                    const M = n * t;    //средняя аномалия   
+                    const E = solveKepler(M, body.e); //эксцентрическая аномалия  
+                    x = body.a * (Math.cos(E) - body.e);
+                    y = body.a * Math.sqrt(1 - body.e * body.e) * Math.sin(E);
+                }
+                return {x, y};
+            }
+            function solveKepler (M, e, iterations = 5) {
+                let E = M;
+                for (let i = 0; i < iterations; i++) {
+                    E = E - ( E -e * Math.sin( E ) - M ) / ( 1 - e * Math.cos(E));
+                }
+                return E;
+            }
+            const canvas = document.getElementById("SolarSystem");
+            canvas.width = document.documentElement.clientWidth -190;
+            
+            const ctx = canvas.getContext("2d");
+            let timeOld;
+            
+            function setDefaultView()  { 
+                bodyBeginOfCounting = sun;
+                pxInAE = 100;
+                masshtab.value = 100 / pxInAE;
+                
+                universe.bodies.forEach(body => {
+                    body.aeSizeForHidePlanets = body.MinRadiusVisual / pxInAE;
+                });
+                
+                dayInSek = 10;
+                
+                offsetScheme.x = 0;
+                offsetScheme.y = 0;
+                offsetScheme.firstX = 0; 
+                offsetScheme.firstY = 0;
+                
+                mLoc.setOffset = false;
+                mLoc.x = 0;
+                mLoc.y = 0;
+                mLoc.firstX = 0;
+                mLoc.firstY = 0;
+                devFromHorizontalValue = 0;
+                devFromVerticalValue = 0;
+                
+                speedOfTime.value = dayInSek;
+                deviationFromHorizontal.value = devFromHorizontalValue; 
+                deviationFromVertical.value = devFromVerticalValue;
+                setBodyRadius();
+            }
+                canvas.addEventListener("mousemove",(e)=>
+                    {        
+                        mLoc.x = e.clientX; 
+                        mLoc.y = e.clientY;
+                        setOffset();
+                    });
+                                                            
+                canvas.addEventListener("mousedown", (e) =>
+                    {      
+                        mLoc.setOffset =true;
+                        mLoc.firstX =e.clientX;
+                        mLoc.firstY =e.clientY;  
+                    });
+                canvas.addEventListener("mouseup", (e) => {
+                    mLoc.setOffset =false;
+                    mLoc.x=e.clientX;
+                    mLoc.y=e.clientY;
+                    offsetScheme.firstX = offsetScheme.x;
+                    offsetScheme.firstY = offsetScheme.y;
+                });
+                canvas.addEventListener("mouseout", (e) => { 
+                    mLoc.setOffset = false;
+                    offsetScheme.firstX = offsetScheme.x
+                    offsetScheme.firstY = offsetScheme.y;
+                });
+                function setOffset() {
+                    if (mLoc.setOffset) {
+                        offsetScheme.x = offsetScheme.firstX + mLoc.x - mLoc.firstX;
+                        offsetScheme.y = offsetScheme.firstY + mLoc.y - mLoc.firstY;
+                    }
+                }
+                canvas.addEventListener ("wheel", (e) => {
+                    let decrement;
+                    if (e.deltaY < 0) {
+                            // Прокрутка вверх
+                        if (Number(masshtab.value) < 0.002) {
+                            decrement = 0.001;
+                        } else if (Number(masshtab.value) < 0.02) {
+                            decrement = 0.001;
+                        } else if (Number(masshtab.value) < 0.2){
+                            decrement = 0.01;
+                        } else {
+                            decrement = 0.1;
+                        }
+                        masshtab.value = Number (masshtab.value) + decrement;
+                    } else {
+                        // Прокрутка вниз
+                        if (Number (masshtab.value) < 0.002) {
+                            decrement = 0;
+                        } else if (Number (masshtab.value) < 0.02) {
+                            decrement = 0.001;
+                        } else if (Number (masshtab.value) < 0.2) {
+                            decrement = 0.01;
+                        } else {
+                            decrement = 0.1;
+                        }
+                        masshtab.value = Number (masshtab.value) - decrement;
+                    }
+                    // Отменяем стандартное действие прокрутки,
+                    event.preventDefault();
+                    pxInAE = 100 / masshtab.value;
+                    universe.bodies.forEach(body => {
+                        body.aeSizeForHidePlanets = body.MinRadiusVisual / pxInAE;
+                    });                   
+                    
+                    setBodyRadius();
+                });
+                const PI_For_1Degree = Math.PI / 180;
+                function getScreenPos (pos) {
+                    let x,y;
+                    let xl=((pos.x - bodyBeginOfCounting.pos.x) * pxInAE + offsetScheme.x); 
+                    let yl=((pos.y - bodyBeginOfCounting.pos.y) * pxInAE + offsetScheme.y); 
+                    let DevFromHorizontal = devFromHorizontalValue*PI_For_1Degree; 
+                    let DevFromVertical = devFromVerticalValue*PI_For_1Degree; 
+                    if (rotate!==0){
+                        const teta = (xl !==0)?Math.atan( yl/xl ):Math.PI/2;
+                        try {
+                            x = Math.sqrt( (xl*xl+yl*yl) / ( 1 + Math.tan( teta+ rotate*PI_For_1Degree )**2));
+                        } catch (e) {
+                            console.error(e);
+                        }
+                        y = xl * Math.tan( teta+ rotate*PI_For_1Degree );
+                        xl=x;
+                        yl=y;
+                    }                    
+                    x = canvas.width / 2
+                        + xl * Math.cos( DevFromHorizontal)  - (yl * Math.sin( DevFromVertical ) *Math.sin( DevFromHorizontal));
+                    y = canvas.height / 2 + yl * Math.cos (DevFromVertical );
+                    
+
+                    
+                    return {x,y}
+                }
+                
+                function drawBody (body){//radius, color, name
+                    if ((body.masshtabHide==undefined)
+                        || (masshtab.value<=body.masshtabHide)) { 
+                        let pos=new Pos();
+                        if (body.owner!=undefined) {
+                            body.pos.x = body.pos.x+body.owner.pos.x; 
+                            body.pos.y = body.pos.y+body.owner.pos.y;
+                        }
+                        pos.x=body.pos.x;
+                        pos.y=body.pos.y;
+                    
+                        const screenPos = getScreenPos(pos);
+                        const screenX = screenPos.x;
+                        const screenY = screenPos.y;
+                        let screenX_Old=0;
+                        let screenY_Old=0;
+                        ctx.beginPath();
+                        ctx.arc (screenX, screenY, body.radius, 0, 2 * Math.PI);
+                        ctx.fillStyle = body.color;
+                        ctx.fill();
+                        body.history_pos.history_of_pos.forEach(pos=>{
+                            let screenPos = getScreenPos (pos);
+                            if (    ((Math.abs(screenX_Old-screenPos.x)>4)
+                                    || (Math.abs(screenY_Old-screenPos.y) >4)) ) { 
+                                ctx.fillRect (screenPos.x, screenPos.y, 1, 1); 
+                                screenX_Old = screenPos.x;
+                                screenY_Old = screenPos.y;
+                            }
+                        } );
+                        if ((body.name == 'Sun')
+                                || ((Math.abs(body.pos.x - (body.owner == undefined? 0: body.owner.pos.x))) > body.owner.aeSizeForHidePlanets) 
+                                || ((Math.abs(body.pos.y - (body.owner == undefined? 0: body.owner.pos.y))) > body.owner.aeSizeForHidePlanets)) {
+                            ctx.fillText (body.name, screenX+body.radius+2,screenY);
+                            //ctx.fillText (body.name+' screenX=['+screenx.toFixed(3)] screeny=[' +screenY.toFixed(3)+'] x=['+pos.x.toFixed(3)+'] y=['+pos.y.toFixed(3)+']
+                        }
+                    }
+                }
+                function buildOrbits() {
+                    universe.bodies.forEach (body => {
+                        let time = (curentDate.getFullYear () - 2000) + (getDayOfYear(curentDate) / 365.25); 
+                        const lenCircle = Math.round( body.a*2 * Math.PI / 0.1);
+                        if (lenCircle!=0) {
+                            const deltaT = body.T/lenCircle; 
+                            body.history_pos.maxLength=lenCircle; 
+                            ctx.fillStyle = body.color;
+                            let modeSave=body.modeBuildCircle;
+                            body.modeBuildCircle = MODE_BuildCircleOn;
+                            for (let i=0; i<lenCircle; i++) {
+                                body.pos=getBodyPosition (body, time);
+                                time = time + deltaT;
+                            }
+                            body.modeBuildCircle = modeSave;
+                        } else {
+                            body.pos={x: 0,y: 0};
+                        }
+                    });
+                }
+                function getDayOfYear (date) {
+                    const start = new Date(date.getFullYear (), 0, 0);
+                    const diff = date - start;
+                    return (diff / msInDay);
+                }
+                buildOrbits();
+                function update() {
+                    if (timeOld==curentDate.getTime()) {
+                        requestAnimationFrame(update);
+                        return;
+                    }
+                    const time = (curentDate.getFullYear() - 2000) + (getDayOfYear(curentDate) / 365.25);//текущий год день в году
+                    ctx.clearRect (0, 0, canvas.width, canvas.height);                  
+                    
+                    universe.bodies.forEach(body =>{
+                        body.pos = getBodyPosition( body, time);
+                        drawBody (body);
+                    });
+                    curDate.value = curentDate.getFullYear()
+                        + '-'+((curentDate.getMonth() < 9) ? '0' :'') + (curentDate.getMonth() + 1)
+                        + '-'+((curentDate.getDate() <= 9) ? '0' :'') + curentDate.getDate();
+                    timeOld= curentDate.getTime();
+                    requestAnimationFrame(update);
+                }
+                update();
+                setInterval(moveTime, 20);
+                function moveTime() {
+                    curentDate.setTime (curentDate.getTime() + msInDay_02Proz * dayInSek);
+                    //update
+                }
+                //setInterval(update, 20);                                                            
+        </script>
+    </body>
+</html>
