@@ -92,6 +92,8 @@ Click nbfs://nbhost/SystemFileSystem/Templates/ClientSide/html.html to edit this
             btnPushUp.addEventListener('mousedown', turnTopLongAwayFromUs); 
             btnPushUp.addEventListener('mouseup', turnTopLongAwayFromUsUp); 
             btnPushUp.addEventListener('mouseout', turnTopLongAwayFromUsUp); 
+            btnPushUp.addEventListener('touchstart', turnTopLongAwayFromUs); 
+            btnPushUp.addEventListener('touchend', turnTopLongAwayFromUsUp);
             function turnTopLongAwayFromUs () {
                 isMouseDown = true;
                 timeoutId = setInterval(
