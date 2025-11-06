@@ -137,6 +137,8 @@ Click nbfs://nbhost/SystemFileSystem/Templates/ClientSide/html.html to edit this
             btnPushRight.addEventListener('mousedown', turnRightLongAwayFromUs); 
             btnPushRight.addEventListener('mouseup', turnRightLongAwayFromUsUp); 
             btnPushRight.addEventListener('mouseout', turnRightLongAwayFromUsUp);
+            btnPushRight.addEventListener('touchstart', turnRightLongAwayFromUs); 
+            btnPushRight.addEventListener('touchend', turnRightLongAwayFromUsUp); 
             function turnRightLongAwayFromUs () {
                 isMouseDown = true;
                 timeoutId = setInterval(
@@ -156,7 +158,8 @@ Click nbfs://nbhost/SystemFileSystem/Templates/ClientSide/html.html to edit this
             btnPushDown.addEventListener('mousedown', turnDownLongAwayFromUs); 
             btnPushDown.addEventListener ('mouseup', turnDownLongAwayFromUsUp);
             btnPushDown.addEventListener('mouseout', turnDownLongAwayFromUsUp); 
-            
+            btnPushDown.addEventListener('touchstart', turnDownLongAwayFromUs); 
+            btnPushDown.addEventListener('touchend', turnDownLongAwayFromUsUp); 
             function turnDownLongAwayFromUs () {
                 isMouseDown = true;
                 timeoutId = setInterval(
@@ -185,6 +188,8 @@ Click nbfs://nbhost/SystemFileSystem/Templates/ClientSide/html.html to edit this
             btnRotate.addEventListener('mousedown', turnRotate); 
             btnRotate.addEventListener ('mouseup', turnRotateUp);
             btnRotate.addEventListener('mouseout', turnRotateUp);
+            btnRotate.addEventListener('touchstart', turnRotate); 
+            btnRotate.addEventListener('touchend', turnRotateUp);            
             let rotate=0;
             
             function turnRotate () {
@@ -480,187 +485,196 @@ Click nbfs://nbhost/SystemFileSystem/Templates/ClientSide/html.html to edit this
                 deviationFromVertical.value = devFromVerticalValue;
                 setBodyRadius();
             }
-                canvas.addEventListener("mousemove",(e)=>
-                    {        
-                        mLoc.x = e.clientX; 
-                        mLoc.y = e.clientY;
-                        setOffset();
-                    });
-                                                            
-                canvas.addEventListener("mousedown", (e) =>
-                    {      
-                        mLoc.setOffset =true;
-                        mLoc.firstX =e.clientX;
-                        mLoc.firstY =e.clientY;  
-                    });
-                canvas.addEventListener("mouseup", (e) => {
-                    mLoc.setOffset =false;
-                    mLoc.x=e.clientX;
-                    mLoc.y=e.clientY;
-                    offsetScheme.firstX = offsetScheme.x;
-                    offsetScheme.firstY = offsetScheme.y;
-                });
-                canvas.addEventListener("mouseout", (e) => { 
-                    mLoc.setOffset = false;
-                    offsetScheme.firstX = offsetScheme.x
-                    offsetScheme.firstY = offsetScheme.y;
-                });
-                function setOffset() {
-                    if (mLoc.setOffset) {
-                        offsetScheme.x = offsetScheme.firstX + mLoc.x - mLoc.firstX;
-                        offsetScheme.y = offsetScheme.firstY + mLoc.y - mLoc.firstY;
-                    }
-                }
-                canvas.addEventListener ("wheel", (e) => {
-                    let decrement;
-                    if (e.deltaY < 0) {
-                            // Прокрутка вверх
-                        if (Number(masshtab.value) < 0.002) {
-                            decrement = 0.001;
-                        } else if (Number(masshtab.value) < 0.02) {
-                            decrement = 0.001;
-                        } else if (Number(masshtab.value) < 0.2){
-                            decrement = 0.01;
-                        } else {
-                            decrement = 0.1;
-                        }
-                        masshtab.value = Number (masshtab.value) + decrement;
-                    } else {
-                        // Прокрутка вниз
-                        if (Number (masshtab.value) < 0.002) {
-                            decrement = 0;
-                        } else if (Number (masshtab.value) < 0.02) {
-                            decrement = 0.001;
-                        } else if (Number (masshtab.value) < 0.2) {
-                            decrement = 0.01;
-                        } else {
-                            decrement = 0.1;
-                        }
-                        masshtab.value = Number (masshtab.value) - decrement;
-                    }
-                    // Отменяем стандартное действие прокрутки,
-                    event.preventDefault();
-                    pxInAE = 100 / masshtab.value;
-                    universe.bodies.forEach(body => {
-                        body.aeSizeForHidePlanets = body.MinRadiusVisual / pxInAE;
-                    });                   
-                    
-                    setBodyRadius();
-                });
-                const PI_For_1Degree = Math.PI / 180;
-                function getScreenPos (pos) {
-                    let x,y;
-                    let xl=((pos.x - bodyBeginOfCounting.pos.x) * pxInAE + offsetScheme.x); 
-                    let yl=((pos.y - bodyBeginOfCounting.pos.y) * pxInAE + offsetScheme.y); 
-                    let DevFromHorizontal = devFromHorizontalValue*PI_For_1Degree; 
-                    let DevFromVertical = devFromVerticalValue*PI_For_1Degree; 
-                    if (rotate!==0){
-                        const teta = (xl !==0)?Math.atan( yl/xl ):Math.PI/2;
-                        try {
-                            x = Math.sqrt( (xl*xl+yl*yl) / ( 1 + Math.tan( teta+ rotate*PI_For_1Degree )**2));
-                        } catch (e) {
-                            console.error(e);
-                        }
-                        y = xl * Math.tan( teta+ rotate*PI_For_1Degree );
-                        xl=x;
-                        yl=y;
-                    }                    
-                    x = canvas.width / 2
-                        + xl * Math.cos( DevFromHorizontal)  - (yl * Math.sin( DevFromVertical ) *Math.sin( DevFromHorizontal));
-                    y = canvas.height / 2 + yl * Math.cos (DevFromVertical );
-                    
+            canvas.addEventListener("mousemove",canvasMouseMove);
+            canvas.addEventListener("touchmove",canvasMouseMove);
+            function canvasMouseMove(e){   
+                mLoc.x = e.clientX; 
+                mLoc.y = e.clientY;
+                setOffset();
+            };                    
 
-                    
-                    return {x,y}
+            canvas.addEventListener("mousedown", canvasMouseDown);
+            canvas.addEventListener("touchstart", canvasMouseDown);
+            function canvasMouseDown(e) {   
+                mLoc.setOffset =true;
+                mLoc.firstX =e.clientX;
+                mLoc.firstY =e.clientY;  
+            };  
+            
+            canvas.addEventListener("mouseup", canvasMouseUp);
+            canvas.addEventListener("touchend", canvasMouseUp);
+            function canvasMouseUp(e) {
+                mLoc.setOffset =false;
+                mLoc.x=e.clientX;
+                mLoc.y=e.clientY;
+                offsetScheme.firstX = offsetScheme.x;
+                offsetScheme.firstY = offsetScheme.y;
+            };
+            
+            canvas.addEventListener("mouseout", canvasMouseOut);
+            canvas.addEventListener("touchcancel", canvasMouseOut);
+            function canvasMouseOut(e) { 
+                mLoc.setOffset = false;
+                offsetScheme.firstX = offsetScheme.x
+                offsetScheme.firstY = offsetScheme.y;
+            };
+            
+            function setOffset() {
+                if (mLoc.setOffset) {
+                    offsetScheme.x = offsetScheme.firstX + mLoc.x - mLoc.firstX;
+                    offsetScheme.y = offsetScheme.firstY + mLoc.y - mLoc.firstY;
                 }
-                
-                function drawBody (body){//radius, color, name
-                    if ((body.masshtabHide==undefined)
-                        || (masshtab.value<=body.masshtabHide)) { 
-                        let pos=new Pos();
-                        if (body.owner!=undefined) {
-                            body.pos.x = body.pos.x+body.owner.pos.x; 
-                            body.pos.y = body.pos.y+body.owner.pos.y;
+            }
+            canvas.addEventListener ("wheel", (e) => {
+                let decrement;
+                if (e.deltaY < 0) {
+                        // Прокрутка вверх
+                    if (Number(masshtab.value) < 0.002) {
+                        decrement = 0.001;
+                    } else if (Number(masshtab.value) < 0.02) {
+                        decrement = 0.001;
+                    } else if (Number(masshtab.value) < 0.2){
+                        decrement = 0.01;
+                    } else {
+                        decrement = 0.1;
+                    }
+                    masshtab.value = Number (masshtab.value) + decrement;
+                } else {
+                    // Прокрутка вниз
+                    if (Number (masshtab.value) < 0.002) {
+                        decrement = 0;
+                    } else if (Number (masshtab.value) < 0.02) {
+                        decrement = 0.001;
+                    } else if (Number (masshtab.value) < 0.2) {
+                        decrement = 0.01;
+                    } else {
+                        decrement = 0.1;
+                    }
+                    masshtab.value = Number (masshtab.value) - decrement;
+                }
+                // Отменяем стандартное действие прокрутки,
+                event.preventDefault();
+                pxInAE = 100 / masshtab.value;
+                universe.bodies.forEach(body => {
+                    body.aeSizeForHidePlanets = body.MinRadiusVisual / pxInAE;
+                });                   
+
+                setBodyRadius();
+            });
+            const PI_For_1Degree = Math.PI / 180;
+            function getScreenPos (pos) {
+                let x,y;
+                let xl=((pos.x - bodyBeginOfCounting.pos.x) * pxInAE + offsetScheme.x); 
+                let yl=((pos.y - bodyBeginOfCounting.pos.y) * pxInAE + offsetScheme.y); 
+                let DevFromHorizontal = devFromHorizontalValue*PI_For_1Degree; 
+                let DevFromVertical = devFromVerticalValue*PI_For_1Degree; 
+                if (rotate!==0){
+                    const teta = (xl !==0)?Math.atan( yl/xl ):Math.PI/2;
+                    try {
+                        x = Math.sqrt( (xl*xl+yl*yl) / ( 1 + Math.tan( teta+ rotate*PI_For_1Degree )**2));
+                    } catch (e) {
+                        console.error(e);
+                    }
+                    y = xl * Math.tan( teta+ rotate*PI_For_1Degree );
+                    xl=x;
+                    yl=y;
+                }                    
+                x = canvas.width / 2
+                    + xl * Math.cos( DevFromHorizontal)  - (yl * Math.sin( DevFromVertical ) *Math.sin( DevFromHorizontal));
+                y = canvas.height / 2 + yl * Math.cos (DevFromVertical );
+
+
+
+                return {x,y}
+            }
+
+            function drawBody (body){//radius, color, name
+                if ((body.masshtabHide==undefined)
+                    || (masshtab.value<=body.masshtabHide)) { 
+                    let pos=new Pos();
+                    if (body.owner!=undefined) {
+                        body.pos.x = body.pos.x+body.owner.pos.x; 
+                        body.pos.y = body.pos.y+body.owner.pos.y;
+                    }
+                    pos.x=body.pos.x;
+                    pos.y=body.pos.y;
+
+                    const screenPos = getScreenPos(pos);
+                    const screenX = screenPos.x;
+                    const screenY = screenPos.y;
+                    let screenX_Old=0;
+                    let screenY_Old=0;
+                    ctx.beginPath();
+                    ctx.arc (screenX, screenY, body.radius, 0, 2 * Math.PI);
+                    ctx.fillStyle = body.color;
+                    ctx.fill();
+                    body.history_pos.history_of_pos.forEach(pos=>{
+                        let screenPos = getScreenPos (pos);
+                        if (    ((Math.abs(screenX_Old-screenPos.x)>4)
+                                || (Math.abs(screenY_Old-screenPos.y) >4)) ) { 
+                            ctx.fillRect (screenPos.x, screenPos.y, 1, 1); 
+                            screenX_Old = screenPos.x;
+                            screenY_Old = screenPos.y;
                         }
-                        pos.x=body.pos.x;
-                        pos.y=body.pos.y;
-                    
-                        const screenPos = getScreenPos(pos);
-                        const screenX = screenPos.x;
-                        const screenY = screenPos.y;
-                        let screenX_Old=0;
-                        let screenY_Old=0;
-                        ctx.beginPath();
-                        ctx.arc (screenX, screenY, body.radius, 0, 2 * Math.PI);
+                    } );
+                    if ((body.name == 'Sun')
+                            || ((Math.abs(body.pos.x - (body.owner == undefined? 0: body.owner.pos.x))) > body.owner.aeSizeForHidePlanets) 
+                            || ((Math.abs(body.pos.y - (body.owner == undefined? 0: body.owner.pos.y))) > body.owner.aeSizeForHidePlanets)) {
+                        ctx.fillText (body.name, screenX+body.radius+2,screenY);
+                        //ctx.fillText (body.name+' screenX=['+screenx.toFixed(3)] screeny=[' +screenY.toFixed(3)+'] x=['+pos.x.toFixed(3)+'] y=['+pos.y.toFixed(3)+']
+                    }
+                }
+            }
+            function buildOrbits() {
+                universe.bodies.forEach (body => {
+                    let time = (curentDate.getFullYear () - 2000) + (getDayOfYear(curentDate) / 365.25); 
+                    const lenCircle = Math.round( body.a*2 * Math.PI / 0.1);
+                    if (lenCircle!=0) {
+                        const deltaT = body.T/lenCircle; 
+                        body.history_pos.maxLength=lenCircle; 
                         ctx.fillStyle = body.color;
-                        ctx.fill();
-                        body.history_pos.history_of_pos.forEach(pos=>{
-                            let screenPos = getScreenPos (pos);
-                            if (    ((Math.abs(screenX_Old-screenPos.x)>4)
-                                    || (Math.abs(screenY_Old-screenPos.y) >4)) ) { 
-                                ctx.fillRect (screenPos.x, screenPos.y, 1, 1); 
-                                screenX_Old = screenPos.x;
-                                screenY_Old = screenPos.y;
-                            }
-                        } );
-                        if ((body.name == 'Sun')
-                                || ((Math.abs(body.pos.x - (body.owner == undefined? 0: body.owner.pos.x))) > body.owner.aeSizeForHidePlanets) 
-                                || ((Math.abs(body.pos.y - (body.owner == undefined? 0: body.owner.pos.y))) > body.owner.aeSizeForHidePlanets)) {
-                            ctx.fillText (body.name, screenX+body.radius+2,screenY);
-                            //ctx.fillText (body.name+' screenX=['+screenx.toFixed(3)] screeny=[' +screenY.toFixed(3)+'] x=['+pos.x.toFixed(3)+'] y=['+pos.y.toFixed(3)+']
+                        let modeSave=body.modeBuildCircle;
+                        body.modeBuildCircle = MODE_BuildCircleOn;
+                        for (let i=0; i<lenCircle; i++) {
+                            body.pos=getBodyPosition (body, time);
+                            time = time + deltaT;
                         }
+                        body.modeBuildCircle = modeSave;
+                    } else {
+                        body.pos={x: 0,y: 0};
                     }
-                }
-                function buildOrbits() {
-                    universe.bodies.forEach (body => {
-                        let time = (curentDate.getFullYear () - 2000) + (getDayOfYear(curentDate) / 365.25); 
-                        const lenCircle = Math.round( body.a*2 * Math.PI / 0.1);
-                        if (lenCircle!=0) {
-                            const deltaT = body.T/lenCircle; 
-                            body.history_pos.maxLength=lenCircle; 
-                            ctx.fillStyle = body.color;
-                            let modeSave=body.modeBuildCircle;
-                            body.modeBuildCircle = MODE_BuildCircleOn;
-                            for (let i=0; i<lenCircle; i++) {
-                                body.pos=getBodyPosition (body, time);
-                                time = time + deltaT;
-                            }
-                            body.modeBuildCircle = modeSave;
-                        } else {
-                            body.pos={x: 0,y: 0};
-                        }
-                    });
-                }
-                function getDayOfYear (date) {
-                    const start = new Date(date.getFullYear (), 0, 0);
-                    const diff = date - start;
-                    return (diff / msInDay);
-                }
-                buildOrbits();
-                function update() {
-                    if (timeOld==curentDate.getTime()) {
-                        requestAnimationFrame(update);
-                        return;
-                    }
-                    const time = (curentDate.getFullYear() - 2000) + (getDayOfYear(curentDate) / 365.25);//текущий год день в году
-                    ctx.clearRect (0, 0, canvas.width, canvas.height);                  
-                    
-                    universe.bodies.forEach(body =>{
-                        body.pos = getBodyPosition( body, time);
-                        drawBody (body);
-                    });
-                    curDate.value = curentDate.getFullYear()
-                        + '-'+((curentDate.getMonth() < 9) ? '0' :'') + (curentDate.getMonth() + 1)
-                        + '-'+((curentDate.getDate() <= 9) ? '0' :'') + curentDate.getDate();
-                    timeOld= curentDate.getTime();
+                });
+            }
+            function getDayOfYear (date) {
+                const start = new Date(date.getFullYear (), 0, 0);
+                const diff = date - start;
+                return (diff / msInDay);
+            }
+            buildOrbits();
+            function update() {
+                if (timeOld==curentDate.getTime()) {
                     requestAnimationFrame(update);
+                    return;
                 }
-                update();
-                setInterval(moveTime, 20);
-                function moveTime() {
-                    curentDate.setTime (curentDate.getTime() + msInDay_02Proz * dayInSek);
-                    //update
-                }
+                const time = (curentDate.getFullYear() - 2000) + (getDayOfYear(curentDate) / 365.25);//текущий год день в году
+                ctx.clearRect (0, 0, canvas.width, canvas.height);                  
+
+                universe.bodies.forEach(body =>{
+                    body.pos = getBodyPosition( body, time);
+                    drawBody (body);
+                });
+                curDate.value = curentDate.getFullYear()
+                    + '-'+((curentDate.getMonth() < 9) ? '0' :'') + (curentDate.getMonth() + 1)
+                    + '-'+((curentDate.getDate() <= 9) ? '0' :'') + curentDate.getDate();
+                timeOld= curentDate.getTime();
+                requestAnimationFrame(update);
+            }
+            update();
+            setInterval(moveTime, 20);
+            function moveTime() {
+                curentDate.setTime (curentDate.getTime() + msInDay_02Proz * dayInSek);
+                //update
+            }
                 //setInterval(update, 20);                                                            
         </script>
     </body>
